@@ -1,0 +1,11 @@
+﻿{
+  "agentId": 2,
+  "agentName": "my-runner",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus23.actions.githubusercontent.com/267MkArQmtAf4VoDHRpQMuLDB3sWzXxJD0GNGjx0945sSYq4C0/",
+  "gitHubUrl": "https://github.com/gunnalaajay1234-maker/zero-downtime-demo",
+  "workFolder": "_work",
+  "useV2Flow": true,
+  "serverUrlV2": "https://broker.actions.githubusercontent.com/"
+}
