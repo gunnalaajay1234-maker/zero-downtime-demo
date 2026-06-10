@@ -59,6 +59,6 @@ jobs:
           ping -n 4 127.0.0.1 >nul
           docker exec nginx sh -c "sed -i 's/3001/3000/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
 
-      - name: Verify
+      - name: Verify 
         shell: cmd
-        run: curl -f http://localhost/health
+        run: curl -f http://localhost/health 
