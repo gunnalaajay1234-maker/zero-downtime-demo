@@ -1,3 +1,4 @@
+
 name: Fixed Deploy (zero downtime)
 
 on:
@@ -21,34 +22,43 @@ jobs:
         run: |
           docker stop myapp_new & echo ok
           docker rm myapp_new & echo ok
-          docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v3 myapp:new
+          docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v4 myapp:new
 
       - name: Wait for new container to be healthy
         shell: cmd
         run: |
-          echo Waiting for health check...
-          ping -n 6 127.0.0.1 >nul
+          echo Waiting for new container...
+          ping -n 16 127.0.0.1 >nul
           curl -f http://localhost:3001/health
           if %errorlevel% neq 0 (
-            echo Health check failed. Rolling back.
-            docker stop myapp_new
-            docker rm myapp_new
+            docker stop myapp_new & docker rm myapp_new
             exit 1
           )
-          echo New container is healthy.
+          echo Healthy on 3001.
 
-      - name: Swap containers
+      - name: Switch Nginx to new container
+        shell: cmd
+        run: |
+          docker exec nginx sh -c "sed -i 's/3000/3001/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
+          echo Nginx now pointing to port 3001. Old container still running.
+
+      - name: Stop old container
+        shell: cmd
+        run: |
+          ping -n 4 127.0.0.1 >nul
+          docker stop myapp & echo old container stopped
+          docker rm myapp & echo old container removed
+          docker rename myapp_new myapp
+
+      - name: Switch Nginx back to port 3000 for next deploy
         shell: cmd
         run: |
           docker stop myapp & echo ok
           docker rm myapp & echo ok
-          docker stop myapp_new & echo ok
-          docker rm myapp_new & echo ok
-          docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v3 myapp:new
-
-      - name: Verify health
-        shell: cmd
-        run: |
+          docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v4 myapp:new
           ping -n 4 127.0.0.1 >nul
-          curl -f http://localhost:3000/health
-          echo Zero downtime deploy complete.
+          docker exec nginx sh -c "sed -i 's/3001/3000/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
+
+      - name: Verify
+        shell: cmd
+        run: curl -f http://localhost/health
