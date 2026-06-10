@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - APP_VERSION=${APP_VERSION:-1}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
