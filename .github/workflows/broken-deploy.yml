@@ -19,7 +19,7 @@ jobs:
       - name: Stop old container
         shell: cmd
         run: |
-          docker stop myapp
+          docker stop myapp 
           docker rm myapp
 
       - name: Start new container
