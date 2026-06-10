@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "gunnalaajay1234-maker/zero-downtime-demo",
+  "pipelineDirectory": "zero-downtime-demo",
+  "workspaceDirectory": "zero-downtime-demo\\zero-downtime-demo",
+  "repositories": {
+    "gunnalaajay1234-maker/zero-downtime-demo": {
+      "repositoryPath": "zero-downtime-demo\\zero-downtime-demo",
+      "lastRunOn": "06/10/2026 14:49:18 +05:30"
+    }
+  },
+  "lastRunOn": "06/10/2026 15:01:26 +05:30"
+}
