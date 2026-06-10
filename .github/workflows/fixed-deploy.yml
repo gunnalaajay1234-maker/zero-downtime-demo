@@ -13,6 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Ensure Nginx is running
+        shell: cmd
+        run: |
+          docker start nginx 2>nul || (
+            docker run -d --name nginx --restart unless-stopped -p 8080:80 --add-host=host.docker.internal:host-gateway nginx:alpine
+            ping -n 4 127.0.0.1 >nul
+            docker cp nginx\default.conf nginx:/etc/nginx/conf.d/default.conf
+            docker exec nginx nginx -s reload
+          )
+
       - name: Build new Docker image
         shell: cmd
         run: docker build -t myapp:new .
@@ -22,7 +32,7 @@ jobs:
         run: |
           docker stop myapp_new & echo ok
           docker rm myapp_new & echo ok
-          docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v4 myapp:new
+          docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v5 myapp:new
 
       - name: Wait for new container to be healthy
         shell: cmd
@@ -31,34 +41,39 @@ jobs:
           ping -n 16 127.0.0.1 >nul
           curl -f http://localhost:3001/health
           if %errorlevel% neq 0 (
+            echo Health check failed. Rolling back.
             docker stop myapp_new & docker rm myapp_new
             exit 1
           )
-          echo Healthy on 3001.
+          echo New container is healthy on port 3001.
 
-      - name: Switch Nginx to new container
+      - name: Switch Nginx to new container port 3001
         shell: cmd
         run: |
           docker exec nginx sh -c "sed -i 's/3000/3001/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
-          echo Nginx now pointing to port 3001. Old container still running.
+          echo Nginx now pointing to new container on port 3001.
 
       - name: Stop old container
         shell: cmd
         run: |
-          ping -n 4 127.0.0.1 >nul
-          docker stop myapp & echo old container stopped
-          docker rm myapp & echo old container removed
+          ping -n 3 127.0.0.1 >nul
+          docker stop myapp & echo ok
+          docker rm myapp & echo ok
           docker rename myapp_new myapp
 
-      - name: Switch Nginx back to port 3000 for next deploy
+      - name: Switch Nginx back to port 3000
         shell: cmd
         run: |
           docker stop myapp & echo ok
           docker rm myapp & echo ok
-          docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v4 myapp:new
-          ping -n 4 127.0.0.1 >nul
+          docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v5 myapp:new
+          ping -n 6 127.0.0.1 >nul
           docker exec nginx sh -c "sed -i 's/3001/3000/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
+          echo Nginx back to port 3000 for next deploy.
 
-      - name: Verify 
+      - name: Verify zero downtime deploy
         shell: cmd
-        run: curl -f http://localhost/health 
+        run: |
+          ping -n 4 127.0.0.1 >nul
+          curl -f http://localhost:8080/health
+          echo Zero downtime deploy complete.

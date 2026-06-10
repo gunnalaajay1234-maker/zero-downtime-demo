@@ -1,11 +1,13 @@
 
 #!/bin/bash
-echo "Watching http://localhost:80 every second... (Ctrl+C to stop)"
+echo "Watching http://localhost:8080 every second... (Ctrl+C to stop)"
+echo "GREEN = UP, RED = DOWN"
+echo ""
 DOWN_COUNT=0
 LAST_STATUS=""
 while true; do
   TIME=$(date '+%H:%M:%S')
-  RESPONSE=$(curl -s --max-time 1 http://localhost:80/ 2>/dev/null)
+  RESPONSE=$(curl -s --max-time 1 http://localhost:8080/ 2>/dev/null)
   if [ $? -eq 0 ] && [ -n "$RESPONSE" ]; then
     VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','?'))" 2>/dev/null || echo "up")
     if [ "$LAST_STATUS" = "DOWN" ]; then
