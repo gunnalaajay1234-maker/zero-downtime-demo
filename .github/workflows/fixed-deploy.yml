@@ -13,48 +13,45 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build new Docker image
+        shell: cmd
         run: docker build -t myapp:new .
 
       - name: Start new container on port 3001
+        shell: cmd
         run: |
-          docker stop myapp_new 2>/dev/null || true
-          docker rm myapp_new 2>/dev/null || true
-          docker run -d \
-            --name myapp_new \
-            -p 3001:3000 \
-            -e APP_VERSION=v3 \
-            myapp:new
+          docker stop myapp_new 2>nul & docker rm myapp_new 2>nul
+          docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v3 myapp:new
 
       - name: Wait for new container to be healthy
+        shell: pwsh
         run: |
-          for i in $(seq 1 12); do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' myapp_new 2>/dev/null)
-            echo "Attempt $i/12 - health: $STATUS"
-            if [ "$STATUS" = "healthy" ]; then
-              echo "Healthy. Proceeding with swap."
+          for ($i = 1; $i -le 12; $i++) {
+            $status = docker inspect --format="{{.State.Health.Status}}" myapp_new 2>$null
+            Write-Host "Attempt $i/12 - health: $status"
+            if ($status -eq "healthy") {
+              Write-Host "Healthy. Proceeding with swap."
               break
-            fi
-            if [ $i -eq 12 ]; then
-              echo "Never became healthy. Rolling back."
-              docker stop myapp_new && docker rm myapp_new
+            }
+            if ($i -eq 12) {
+              Write-Host "Never became healthy. Rolling back."
+              docker stop myapp_new
+              docker rm myapp_new
               exit 1
-            fi
-            sleep 5
-          done
+            }
+            Start-Sleep -Seconds 5
+          }
 
       - name: Swap containers
+        shell: cmd
         run: |
-          docker stop myapp && docker rm myapp
-          docker stop myapp_new && docker rm myapp_new
-          docker run -d \
-            --name myapp \
-            --restart unless-stopped \
-            -p 3000:3000 \
-            -e APP_VERSION=v3 \
-            myapp:new
+          docker stop myapp
+          docker rm myapp
+          docker stop myapp_new
+          docker rm myapp_new
+          docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v3 myapp:new
 
       - name: Verify health
+        shell: cmd
         run: |
-          sleep 3
-          curl -f http://localhost:3000/health || exit 1
-          echo "Zero downtime deploy complete."
+          ping -n 4 127.0.0.1 >nul
+          curl -f http://localhost:3000/health
