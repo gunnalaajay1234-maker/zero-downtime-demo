@@ -1,0 +1,7 @@
+[user]
+	name = Ajay Goud
+	email = gunnalaajay1234@gmail.com
+[pull]
+	rebase = true
+[safe]
+	directory = C:\\zaltix\\day1-task\\zero-downtime-demo-\\actions-runner\\_work\\zero-downtime-demo\\zero-downtime-demo
