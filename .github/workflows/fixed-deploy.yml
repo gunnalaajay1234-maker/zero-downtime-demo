@@ -24,23 +24,18 @@ jobs:
           docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v3 myapp:new
 
       - name: Wait for new container to be healthy
-        shell: powershell
+        shell: cmd
         run: |
-          for ($i = 1; $i -le 12; $i++) {
-            $status = docker inspect --format="{{.State.Health.Status}}" myapp_new 2>$null
-            Write-Host "Attempt $i/12 - health: $status"
-            if ($status -eq "healthy") {
-              Write-Host "Healthy. Proceeding with swap."
-              break
-            }
-            if ($i -eq 12) {
-              Write-Host "Never became healthy. Rolling back."
-              docker stop myapp_new
-              docker rm myapp_new
-              exit 1
-            }
-            Start-Sleep -Seconds 5
-          }
+          echo Waiting for health check...
+          ping -n 6 127.0.0.1 >nul
+          curl -f http://localhost:3001/health
+          if %errorlevel% neq 0 (
+            echo Health check failed. Rolling back.
+            docker stop myapp_new
+            docker rm myapp_new
+            exit 1
+          )
+          echo New container is healthy.
 
       - name: Swap containers
         shell: cmd
@@ -56,3 +51,4 @@ jobs:
         run: |
           ping -n 4 127.0.0.1 >nul
           curl -f http://localhost:3000/health
+          echo Zero downtime deploy complete.
