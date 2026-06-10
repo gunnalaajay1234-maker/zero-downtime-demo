@@ -19,11 +19,12 @@ jobs:
       - name: Start new container on port 3001
         shell: cmd
         run: |
-          docker stop myapp_new 2>nul & docker rm myapp_new 2>nul
+          docker stop myapp_new & echo ok
+          docker rm myapp_new & echo ok
           docker run -d --name myapp_new -p 3001:3000 -e APP_VERSION=v3 myapp:new
 
       - name: Wait for new container to be healthy
-        shell: pwsh
+        shell: powershell
         run: |
           for ($i = 1; $i -le 12; $i++) {
             $status = docker inspect --format="{{.State.Health.Status}}" myapp_new 2>$null
@@ -44,10 +45,10 @@ jobs:
       - name: Swap containers
         shell: cmd
         run: |
-          docker stop myapp
-          docker rm myapp
-          docker stop myapp_new
-          docker rm myapp_new
+          docker stop myapp & echo ok
+          docker rm myapp & echo ok
+          docker stop myapp_new & echo ok
+          docker rm myapp_new & echo ok
           docker run -d --name myapp --restart unless-stopped -p 3000:3000 -e APP_VERSION=v3 myapp:new
 
       - name: Verify health
