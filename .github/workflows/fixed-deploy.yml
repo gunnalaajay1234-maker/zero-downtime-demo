@@ -1,0 +1,60 @@
+name: Fixed Deploy (zero downtime)
+
+on:
+  push:
+    branches: [fixed]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build new Docker image
+        run: docker build -t myapp:new .
+
+      - name: Start new container on port 3001
+        run: |
+          docker stop myapp_new 2>/dev/null || true
+          docker rm myapp_new 2>/dev/null || true
+          docker run -d \
+            --name myapp_new \
+            -p 3001:3000 \
+            -e APP_VERSION=v3 \
+            myapp:new
+
+      - name: Wait for new container to be healthy
+        run: |
+          for i in $(seq 1 12); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' myapp_new 2>/dev/null)
+            echo "Attempt $i/12 - health: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Healthy. Proceeding with swap."
+              break
+            fi
+            if [ $i -eq 12 ]; then
+              echo "Never became healthy. Rolling back."
+              docker stop myapp_new && docker rm myapp_new
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Swap containers
+        run: |
+          docker stop myapp && docker rm myapp
+          docker stop myapp_new && docker rm myapp_new
+          docker run -d \
+            --name myapp \
+            --restart unless-stopped \
+            -p 3000:3000 \
+            -e APP_VERSION=v3 \
+            myapp:new
+
+      - name: Verify health
+        run: |
+          sleep 3
+          curl -f http://localhost:3000/health || exit 1
+          echo "Zero downtime deploy complete."

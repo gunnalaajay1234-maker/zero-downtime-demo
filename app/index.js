@@ -1,14 +1,20 @@
-const express = require('express');
+const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
+const VERSION = process.env.APP_VERSION || "v1";
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello from v' + (process.env.APP_VERSION || '1') });
+app.get("/", (req, res) => {
+  res.json({
+    message: "Hello from " + VERSION,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime().toFixed(1) + "s"
+  });
 });
 
-// Readiness probe — GitHub Actions health check hits this
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", version: VERSION });
 });
 
-app.listen(PORT, () => console.log(`App running on ${PORT}`));
+app.listen(PORT, () => {
+  console.log("[" + VERSION + "] App started on port " + PORT);
+});

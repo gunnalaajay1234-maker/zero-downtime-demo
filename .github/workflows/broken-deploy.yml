@@ -2,25 +2,29 @@ name: Broken Deploy (causes downtime)
 
 on:
   push:
-    branches: [broken]
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t myapp:latest .
+        run: docker build -t myapp:new .
 
-      # 💥 THE PROBLEM: stops old container first, then starts new one
-      # Gap between these two lines = downtime (502 errors for users)
       - name: Stop old container
-        run: docker stop myapp || true && docker rm myapp || true
+        run: |
+          docker stop myapp
+          docker rm myapp
 
       - name: Start new container
         run: |
           docker run -d \
             --name myapp \
+            --restart unless-stopped \
             -p 3000:3000 \
-            myapp:latest
+            -e APP_VERSION=v2 \
+            myapp:new

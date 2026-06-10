@@ -4,6 +4,6 @@ COPY app/package*.json ./
 RUN npm install --production
 COPY app/ .
 EXPOSE 3000
-HEALTHCHECK --interval=5s --timeout=3s --retries=3 \
+HEALTHCHECK --interval=5s --timeout=3s --retries=5 --start-period=10s \
   CMD wget -qO- http://localhost:3000/health || exit 1
 CMD ["node", "index.js"]
