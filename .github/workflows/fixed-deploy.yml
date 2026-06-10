@@ -2,7 +2,7 @@ name: Fixed Deploy (zero downtime)
 
 on:
   push:
-    branches: [fixed]
+    branches: [main]
 
 jobs:
   deploy:
